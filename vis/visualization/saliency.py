@@ -42,7 +42,8 @@ def _find_penultimate_layer(model, layer_idx, penultimate_layer_idx):
     if layer_idx < 0:
         layer_idx = len(model.layers) + layer_idx
     if penultimate_layer_idx > layer_idx:
-        raise ValueError('`penultimate_layer_idx` needs to be before `layer_idx`')
+        raise ValueError(
+            '`penultimate_layer_idx` needs to be before `layer_idx`')
 
     return model.layers[penultimate_layer_idx]
 
@@ -72,8 +73,10 @@ def visualize_saliency_with_losses(input_tensor, losses, seed_input, wrt_tensor=
     Returns:
         The normalized gradients of `seed_input` with respect to weighted `losses`.
     """
-    opt = Optimizer(input_tensor, losses, wrt_tensor=wrt_tensor, norm_grads=False)
-    grads = opt.minimize(seed_input=seed_input, max_iter=1, grad_modifier=grad_modifier, verbose=False)[1]
+    opt = Optimizer(input_tensor, losses,
+                    wrt_tensor=wrt_tensor, norm_grads=False)
+    grads = opt.minimize(seed_input=seed_input, max_iter=1,
+                         grad_modifier=grad_modifier, verbose=False)[1]
 
     channel_idx = 1 if K.image_data_format() == 'channels_first' else -1
     grads = np.max(grads, axis=channel_idx)
@@ -155,8 +158,10 @@ def visualize_cam_with_losses(input_tensor, losses, seed_input, penultimate_laye
         The normalized gradients of `seed_input` with respect to weighted `losses`.
     """
     penultimate_output = penultimate_layer.output
-    opt = Optimizer(input_tensor, losses, wrt_tensor=penultimate_output, norm_grads=False)
-    _, grads, penultimate_output_value = opt.minimize(seed_input, max_iter=1, grad_modifier=grad_modifier, verbose=False)
+    opt = Optimizer(input_tensor, losses,
+                    wrt_tensor=penultimate_output, norm_grads=False)
+    _, grads, penultimate_output_value = opt.minimize(
+        seed_input, max_iter=1, grad_modifier=grad_modifier, verbose=False)
 
     # For numerical stability. Very small grad values along with small penultimate_output_value can cause
     # w * penultimate_output_value to zero out, even for reasonable fp precision of float32.
@@ -178,15 +183,17 @@ def visualize_cam_with_losses(input_tensor, losses, seed_input, penultimate_laye
             heatmap += w * penultimate_output_value[0, i, ...]
 
     # ReLU thresholding to exclude pattern mismatch information (negative gradients).
-    heatmap = np.maximum(heatmap, 0)
+    # heatmap = np.maximum(heatmap, 0) #We want negative grads
 
     # The penultimate feature map size is definitely smaller than input image.
     input_dims = utils.get_img_shape(input_tensor)[2:]
 
     # Figure out the zoom factor.
-    zoom_factor = [i / (j * 1.0) for i, j in iter(zip(input_dims, output_dims))]
+    zoom_factor = [i / (j * 1.0)
+                   for i, j in iter(zip(input_dims, output_dims))]
     heatmap = zoom(heatmap, zoom_factor)
-    return utils.normalize(heatmap)
+    return heatmap
+    # return utils.normalize(heatmap)
 
 
 def visualize_cam(model, layer_idx, filter_indices,
@@ -228,7 +235,8 @@ def visualize_cam(model, layer_idx, filter_indices,
         modifier_fn = get(backprop_modifier)
         model = modifier_fn(model)
 
-    penultimate_layer = _find_penultimate_layer(model, layer_idx, penultimate_layer_idx)
+    penultimate_layer = _find_penultimate_layer(
+        model, layer_idx, penultimate_layer_idx)
 
     # `ActivationMaximization` outputs negative gradient values for increase in activations. Multiply with -1
     # so that positive gradients indicate increase instead.
